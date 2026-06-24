@@ -16,6 +16,7 @@ class AppState:
         self.last_poll_time = None
         self.last_poll_error = None
         self.machine_id = None
+        self.machine_info = None
 
     def set_auth_status(self, authenticated, error=None):
         with self._lock:
@@ -32,6 +33,10 @@ class AppState:
     def set_machine_id(self, machine_id):
         with self._lock:
             self.machine_id = machine_id
+
+    def set_machine_info(self, machine_info):
+        with self._lock:
+            self.machine_info = machine_info
 
     def record_call(self, method, url, status_code, response_body):
         entry = {
@@ -53,6 +58,7 @@ class AppState:
                 "last_poll_time": self.last_poll_time,
                 "last_poll_error": self.last_poll_error,
                 "machine_id": self.machine_id,
+                "machine_info": self.machine_info,
                 "calls": list(self._calls),
             }
 

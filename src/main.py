@@ -127,6 +127,7 @@ def run_loop():
 
             machine_info = call_with_refresh(api, token_store, api.get_machine_info, machine_id)
             publisher.publish_machine_state(machine_id, machine_info)
+            state.set_machine_info(machine_info)
             state.set_poll_status()
             log.info("Published machine state for %s", machine_id)
         except AuthError as e:
