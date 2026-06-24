@@ -4,8 +4,10 @@ import sys
 import threading
 import time
 
+import requests
 import yaml
 
+from history_store import history_store
 from mqtt_publisher import MqttPublisher
 from perfectdraft_api import AuthError, PerfectDraftAPI
 from state import state
@@ -79,14 +81,38 @@ def run_auth(args):
 def call_with_refresh(api, token_store, func, *args):
     """Calls func(*args) on the api; on a 401 AuthError, tries a Cognito
     token refresh (no reCAPTCHA needed) once before re-raising."""
-    try:
-        return func(*args)
-    except AuthError:
-        log.info("Access token expired, attempting refresh via Cognito")
-        access_token, id_token, refresh_token = api.refresh_tokens()
-        token_store.save(access_token, id_token, refresh_token)
-        state.set_auth_status(True)
-        return func(*args)
+    refreshed = False
+    transient_attempts = 0
+    max_transient_attempts = 3
+
+    while True:
+        try:
+            return func(*args)
+        except AuthError:
+            if refreshed:
+                raise
+            log.info("Access token expired, attempting refresh via Cognito")
+            access_token, id_token, refresh_token = api.refresh_tokens()
+            token_store.save(access_token, id_token, refresh_token)
+            state.set_auth_status(True)
+            refreshed = True
+        except requests.exceptions.RequestException as exc:
+            status_code = exc.response.status_code if exc.response is not None else None
+            if status_code is not None and status_code < 500 and status_code != 429:
+                raise
+
+            transient_attempts += 1
+            if transient_attempts >= max_transient_attempts:
+                raise
+
+            log.warning(
+                "Transient API error calling %s (attempt %s/%s): %s",
+                func.__name__,
+                transient_attempts,
+                max_transient_attempts,
+                exc,
+            )
+            time.sleep(2)
 
 
 def run_loop():
@@ -127,6 +153,7 @@ def run_loop():
 
             machine_info = call_with_refresh(api, token_store, api.get_machine_info, machine_id)
             publisher.publish_machine_state(machine_id, machine_info)
+            history_store.record_machine_sample(machine_id, machine_info)
             state.set_machine_info(machine_info)
             state.set_poll_status()
             log.info("Published machine state for %s", machine_id)

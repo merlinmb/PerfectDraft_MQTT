@@ -1,5 +1,8 @@
+from datetime import datetime, timedelta
+
 from flask import Flask, render_template_string
 
+from history_store import history_store
 from state import state
 
 app = Flask(__name__)
@@ -166,6 +169,11 @@ LANDING_TEMPLATE = """
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 14px;
   }
+  .trend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+  }
   .card {
     position: relative;
     background: var(--card);
@@ -224,6 +232,75 @@ LANDING_TEMPLATE = """
   }
   .card .value { font-size: 30px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
   .card .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  .trend-card {
+    text-align: left;
+    padding: 20px 20px 16px;
+    overflow: hidden;
+  }
+  .trend-card::after {
+    content: "";
+    position: absolute;
+    inset: auto -10% -40% 35%;
+    height: 120px;
+    background: radial-gradient(circle, rgba(246,183,60,0.16), transparent 65%);
+    pointer-events: none;
+  }
+  .trend-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .trend-title {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 6px;
+  }
+  .trend-now {
+    font-size: 28px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .trend-meta {
+    color: var(--muted);
+    font-size: 12px;
+    text-align: right;
+  }
+  .sparkline {
+    width: 100%;
+    height: 92px;
+    display: block;
+    margin-top: 8px;
+  }
+  .sparkline-bg { opacity: .28; }
+  .sparkline-line {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 8px rgba(246,183,60,.28));
+  }
+  .sparkline-line.cool {
+    stroke: #7ae3ff;
+    filter: drop-shadow(0 0 8px rgba(122,227,255,.2));
+  }
+  .sparkline-grid {
+    stroke: rgba(255,255,255,0.07);
+    stroke-width: 1;
+  }
+  .trend-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 10px;
+  }
 
   .bar-track {
     width: 100%;
@@ -368,6 +445,66 @@ LANDING_TEMPLATE = """
     </div>
   </div>
 
+  <div class="section-title">30-Day Trends</div>
+  <div class="trend-grid">
+    <div class="card trend-card">
+      <div class="trend-head">
+        <div>
+          <div class="trend-title">Temperature History</div>
+          <div class="trend-now">{{ info.temperature }}°{{ info.temp_unit }}</div>
+        </div>
+        <div class="trend-meta">30 days<br>{{ history.temperature_points }} samples</div>
+      </div>
+      {% if history.temperature_path %}
+      <svg class="sparkline" viewBox="0 0 320 92" preserveAspectRatio="none" aria-label="Temperature trend">
+        <defs>
+          <linearGradient id="tempSparkFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#7ae3ff" stop-opacity="0.45"></stop>
+            <stop offset="1" stop-color="#7ae3ff" stop-opacity="0"></stop>
+          </linearGradient>
+        </defs>
+        <line class="sparkline-grid" x1="0" y1="76" x2="320" y2="76"></line>
+        <path class="sparkline-bg" d="{{ history.temperature_fill_path }}" fill="url(#tempSparkFill)"></path>
+        <path class="sparkline-line cool" d="{{ history.temperature_path }}"></path>
+      </svg>
+      {% else %}
+      <div class="sub">Not enough temperature history yet.</div>
+      {% endif %}
+      <div class="trend-foot">
+        <span>Low {{ history.temperature_min_label }}</span>
+        <span>High {{ history.temperature_max_label }}</span>
+      </div>
+    </div>
+    <div class="card trend-card">
+      <div class="trend-head">
+        <div>
+          <div class="trend-title">Keg Fullness History</div>
+          <div class="trend-now">{{ info.keg_volume_pct }}%</div>
+        </div>
+        <div class="trend-meta">30 days<br>{{ history.usage_points }} samples</div>
+      </div>
+      {% if history.usage_path %}
+      <svg class="sparkline" viewBox="0 0 320 92" preserveAspectRatio="none" aria-label="Keg fullness trend">
+        <defs>
+          <linearGradient id="usageSparkFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#f6b73c" stop-opacity="0.5"></stop>
+            <stop offset="1" stop-color="#f6b73c" stop-opacity="0"></stop>
+          </linearGradient>
+        </defs>
+        <line class="sparkline-grid" x1="0" y1="76" x2="320" y2="76"></line>
+        <path class="sparkline-bg" d="{{ history.usage_fill_path }}" fill="url(#usageSparkFill)"></path>
+        <path class="sparkline-line" d="{{ history.usage_path }}"></path>
+      </svg>
+      {% else %}
+      <div class="sub">Not enough usage history yet.</div>
+      {% endif %}
+      <div class="trend-foot">
+        <span>Low {{ history.usage_min_label }}</span>
+        <span>High {{ history.usage_max_label }}</span>
+      </div>
+    </div>
+  </div>
+
   <div class="section-title">Temperature &amp; Mode</div>
   <div class="grid">
     <div class="card">
@@ -378,8 +515,20 @@ LANDING_TEMPLATE = """
     </div>
     <div class="card">
       <div class="icon">⏱️</div>
-      <div class="label">Time To Target</div>
+      <div class="label">API Time To Target</div>
       <div class="value">{{ info.time_to_target }} min</div>
+    </div>
+    <div class="card">
+      <div class="icon">🧊</div>
+      <div class="label">Cooling Rate</div>
+      <div class="value">{{ info.cooling_rate_label }}</div>
+      <div class="sub">based on recent history</div>
+    </div>
+    <div class="card">
+      <div class="icon">⌛</div>
+      <div class="label">Calculated Time To Target</div>
+      <div class="value">{{ info.calculated_time_to_target_label }}</div>
+      <div class="sub">derived from cooling rate</div>
     </div>
     <div class="card">
       <div class="icon">🍃</div>
@@ -609,15 +758,173 @@ def _extract_display_info(machine_info):
         "eco_scheduler": settings_nested.get("ecoModeSchedulerEnabled", False),
         "mode": setting.get("mode", "—"),
         "boost": setting.get("boost", False),
+        "cooling_rate_label": "—",
+        "calculated_time_to_target_label": "—",
     }
+
+
+def _downsample(values, max_points=120):
+    if len(values) <= max_points:
+        return values
+
+    step = (len(values) - 1) / (max_points - 1)
+    sampled = []
+    for index in range(max_points):
+        sampled.append(values[round(index * step)])
+    return sampled
+
+
+def _build_sparkline(values, width=320, height=92, top_padding=8, bottom_padding=16):
+    valid_values = [value for value in values if isinstance(value, (int, float))]
+    if len(valid_values) < 2:
+        return {
+            "path": "",
+            "fill_path": "",
+            "min_label": "—",
+            "max_label": "—",
+            "points": len(valid_values),
+        }
+
+    sampled = _downsample(valid_values)
+    minimum = min(sampled)
+    maximum = max(sampled)
+    drawable_height = height - top_padding - bottom_padding
+    span = maximum - minimum
+    if span == 0:
+        span = 1
+
+    points = []
+    for index, value in enumerate(sampled):
+        x = 0 if len(sampled) == 1 else (width * index / (len(sampled) - 1))
+        y = top_padding + ((maximum - value) / span) * drawable_height
+        points.append((round(x, 2), round(y, 2)))
+
+    path = "M " + " L ".join(f"{x} {y}" for x, y in points)
+    fill_path = (
+        f"M {points[0][0]} {height - bottom_padding} L "
+        + " L ".join(f"{x} {y}" for x, y in points)
+        + f" L {points[-1][0]} {height - bottom_padding} Z"
+    )
+
+    return {
+        "path": path,
+        "fill_path": fill_path,
+        "min_label": minimum,
+        "max_label": maximum,
+        "points": len(valid_values),
+    }
+
+
+def _format_value(value, suffix="", digits=1):
+    if not isinstance(value, (int, float)):
+        return "—"
+    rounded = round(value, digits)
+    if digits == 0:
+        rounded = int(rounded)
+    return f"{rounded}{suffix}"
+
+
+def _format_duration(minutes):
+    if not isinstance(minutes, (int, float)):
+        return "—"
+    if minutes <= 0:
+        return "At target"
+
+    rounded_minutes = round(minutes)
+    if rounded_minutes < 60:
+        return f"{rounded_minutes} min"
+
+    hours, remainder = divmod(rounded_minutes, 60)
+    if remainder == 0:
+        return f"{hours}h"
+    return f"{hours}h {remainder}m"
+
+
+def _calculate_cooling_metrics(rows, current_temperature, target_temperature):
+    valid_rows = []
+    for row in rows:
+        temperature = row.get("temperature")
+        timestamp = row.get("timestamp")
+        if not isinstance(temperature, (int, float)) or not timestamp:
+            continue
+        try:
+            valid_rows.append((datetime.fromisoformat(timestamp), float(temperature)))
+        except ValueError:
+            continue
+
+    if len(valid_rows) < 2:
+        return None, None
+
+    window_start = valid_rows[-1][0] - timedelta(hours=6)
+    recent_rows = [row for row in valid_rows if row[0] >= window_start]
+    if len(recent_rows) < 2:
+      recent_rows = valid_rows[-2:]
+
+    start_time, start_temp = recent_rows[0]
+    end_time, end_temp = recent_rows[-1]
+    elapsed_hours = (end_time - start_time).total_seconds() / 3600
+    if elapsed_hours <= 0:
+        return None, None
+
+    cooling_rate = (start_temp - end_temp) / elapsed_hours
+    if cooling_rate <= 0:
+        return None, None
+
+    if not isinstance(current_temperature, (int, float)) or not isinstance(target_temperature, (int, float)):
+        return cooling_rate, None
+
+    remaining_delta = current_temperature - target_temperature
+    if remaining_delta <= 0:
+        return cooling_rate, 0
+
+    return cooling_rate, (remaining_delta / cooling_rate) * 60
+
+
+def _build_history_view(machine_id, info):
+    rows = history_store.get_recent_history(machine_id=machine_id, days=30)
+    temperature_sparkline = _build_sparkline([row.get("temperature") for row in rows])
+    usage_sparkline = _build_sparkline([row.get("keg_volume_pct") for row in rows])
+
+    cooling_rate, calculated_time_to_target = _calculate_cooling_metrics(
+        rows,
+        info.get("temperature") if info else None,
+        info.get("target_temperature") if info else None,
+    )
+
+    temp_unit = info.get("temp_unit", "C") if info else "C"
+    history = {
+        "temperature_path": temperature_sparkline["path"],
+        "temperature_fill_path": temperature_sparkline["fill_path"],
+      "temperature_min_label": _format_value(temperature_sparkline["min_label"], f"°{temp_unit}"),
+      "temperature_max_label": _format_value(temperature_sparkline["max_label"], f"°{temp_unit}"),
+        "temperature_points": temperature_sparkline["points"],
+        "usage_path": usage_sparkline["path"],
+        "usage_fill_path": usage_sparkline["fill_path"],
+        "usage_min_label": _format_value(usage_sparkline["min_label"], "%", 0),
+        "usage_max_label": _format_value(usage_sparkline["max_label"], "%", 0),
+        "usage_points": usage_sparkline["points"],
+    }
+
+    if info:
+        info["cooling_rate_label"] = _format_value(cooling_rate, "°C/h", 2)
+        info["calculated_time_to_target_label"] = _format_duration(calculated_time_to_target)
+
+    return history
 
 
 @app.route("/")
 def index():
     snap = state.snapshot()
     info = _extract_display_info(snap.get("machine_info"))
+    history = _build_history_view(snap.get("machine_id"), info)
     temp_pct = info["temp_pct"] if info else 50
-    return render_template_string(LANDING_TEMPLATE, snap=snap, info=info, temp_pct=temp_pct)
+    return render_template_string(
+        LANDING_TEMPLATE,
+        snap=snap,
+        info=info,
+        history=history,
+        temp_pct=temp_pct,
+    )
 
 
 @app.route("/logs")

@@ -44,6 +44,8 @@ A small status page is served on port `8080` (configurable via `web.port` in `co
 - Current authentication status, last successful auth time, and last auth error
 - Discovered machine ID
 - Last poll time/error
+- 30-day history for temperature and keg fullness, persisted in SQLite at `data/history.db` locally or `/data/history.db` in Docker
+- Derived cooling rate and a calculated ETA to target temperature based on recent cooling history
 - A rolling log of the most recent API calls (method, URL, status code, response body)
 
 Visit `http://<host>:8080/` — it auto-refreshes every 10 seconds.
