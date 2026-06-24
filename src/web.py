@@ -94,7 +94,7 @@ LANDING_TEMPLATE = """
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="10">
-<title>PerfectDraft — Live Status</title>
+<title>PerfectDraft: Live Status</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 """ + BASE_STYLE + """
@@ -199,7 +199,7 @@ LANDING_TEMPLATE = """
     margin-bottom: 0;
   }
 
-  /* Fill-mug icon: two stacked copies of the same glyph — a faint outline
+  /* Fill-mug icon: two stacked copies of the same glyph: a faint outline
      underneath, and a gold copy on top clipped from the bottom up by
      --fill, so the mug's own silhouette becomes the level gauge. */
   .icon.mug-icon { font-size: 13px; }
@@ -276,7 +276,7 @@ LANDING_TEMPLATE = """
   </div>
 
   {% if not info %}
-    <div class="empty">No machine data yet — waiting for the first successful poll.</div>
+    <div class="empty">No machine data yet: waiting for the first successful poll.</div>
   {% else %}
   <div class="hero">
     {% set pct = info.keg_volume_pct %}
@@ -395,14 +395,14 @@ LANDING_TEMPLATE = """
     </div>
   </div>
 
-  <div class="section-title">Support This Keg</div>
+  <div class="section-title">Support my drinking habit</div>
   <div class="grid">
     <a class="card-link" href="https://www.perfectdraft.com/en-gb/perfectdraft-gift-vouchers" target="_blank" rel="noopener noreferrer">
       <div class="card">
         <div class="icon">🎁</div>
         <div class="label">Buy Me A Keg Voucher</div>
         <div class="value">Gift Vouchers</div>
-        <div class="sub">Open PerfectDraft in a new tab</div>
+        <div class="sub">*Opens PerfectDraft in a new tab</div>
       </div>
     </a>
   </div>
@@ -420,7 +420,7 @@ LOGS_TEMPLATE = """
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="10">
-<title>PerfectDraft MQTT — Connection Log</title>
+<title>PerfectDraft MQTT: Connection Log</title>
 <style>
 """ + BASE_STYLE + """
   .grid {

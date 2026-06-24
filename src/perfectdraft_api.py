@@ -82,8 +82,11 @@ class PerfectDraftAPI:
     def _record(self, method, url, response):
         if not self.recorder:
             return
-        body = response.text[:RESPONSE_LOG_LIMIT]
-        self.recorder(method, url, response.status_code, body)
+        try:
+            safe_body = json.dumps(self._redact_tokens(json.loads(response.text)))
+        except ValueError:
+            safe_body = response.text
+        self.recorder(method, url, response.status_code, safe_body[:RESPONSE_LOG_LIMIT])
 
     def load_tokens(self, access_token, id_token, refresh_token):
         self.access_token = access_token
