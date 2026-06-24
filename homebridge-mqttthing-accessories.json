@@ -1,0 +1,46 @@
+{
+  "accessories": [
+    {
+      "accessory": "mqttthing",
+      "type": "temperatureSensor",
+      "name": "PerfectDraft Beer Temp",
+      "url": "mqtt://192.168.1.55:1883",
+      "topics": {
+        "getCurrentTemperature": "stat/mcmdhome/Perfectdraft/528566/state$.details.temperature"
+      }
+    },
+    {
+      "accessory": "mqttthing",
+      "type": "contactSensor",
+      "name": "PerfectDraft Door",
+      "url": "mqtt://192.168.1.55:1883",
+      "topics": {
+        "getContactSensorState": {
+          "topic": "stat/mcmdhome/Perfectdraft/528566/state",
+          "apply": "return !JSON.parse(message).details.doorClosed;"
+        }
+      }
+    },
+    {
+      "accessory": "mqttthing",
+      "type": "occupancySensor",
+      "name": "PerfectDraft Online",
+      "url": "mqtt://192.168.1.55:1883",
+      "topics": {
+        "getOccupancyDetected": "stat/mcmdhome/Perfectdraft/528566/state$.details.connectedState"
+      }
+    },
+    {
+      "accessory": "mqttthing",
+      "type": "lightSensor",
+      "name": "PerfectDraft Keg Volume (litres as lux)",
+      "url": "mqtt://192.168.1.55:1883",
+      "topics": {
+        "getCurrentAmbientLightLevel": {
+          "topic": "stat/mcmdhome/Perfectdraft/528566/state",
+          "apply": "return Math.max(0.0001, JSON.parse(message).details.kegVolume);"
+        }
+      }
+    }
+  ]
+}

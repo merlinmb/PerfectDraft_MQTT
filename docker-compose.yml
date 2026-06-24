@@ -1,0 +1,9 @@
+services:
+  perfectdraft-mqtt:
+    build: .
+    container_name: perfectdraft-mqtt
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /home/pi/portainer_data/perfectdraft:/data

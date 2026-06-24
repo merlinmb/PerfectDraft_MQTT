@@ -1,0 +1,15 @@
+perfectdraft:
+  email: "you@example.com"
+  password: "your-password"
+  poll_interval_seconds: 60
+
+mqtt:
+  host: "192.168.1.10"
+  port: 1883
+  username: ""
+  password: ""
+  base_topic: "perfectdraft"
+
+web:
+  enabled: true
+  port: 8080
