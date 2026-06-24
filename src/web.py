@@ -177,6 +177,12 @@ LANDING_TEMPLATE = """
     transition: border-color .15s ease, transform .15s ease;
   }
   .card:hover { border-color: rgba(246,183,60,0.35); transform: translateY(-1px); }
+  .card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+  }
+  .card-link:hover { text-decoration: none; }
   .card .icon {
     position: absolute;
     top: 12px;
@@ -387,6 +393,18 @@ LANDING_TEMPLATE = """
       <div class="value">{{ info.mode }}</div>
       <div class="sub">Boost {{ "On" if info.boost else "Off" }}</div>
     </div>
+  </div>
+
+  <div class="section-title">Support This Keg</div>
+  <div class="grid">
+    <a class="card-link" href="https://www.perfectdraft.com/en-gb/perfectdraft-gift-vouchers" target="_blank" rel="noopener noreferrer">
+      <div class="card">
+        <div class="icon">🎁</div>
+        <div class="label">Buy Me A Keg Voucher</div>
+        <div class="value">Gift Vouchers</div>
+        <div class="sub">Open PerfectDraft in a new tab</div>
+      </div>
+    </a>
   </div>
   {% endif %}
 
