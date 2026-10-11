@@ -13,7 +13,7 @@ PerfectDraft's website uses Google reCAPTCHA Enterprise, which can't be solved h
    ```
 
 4. A long token string will be printed to the console a moment later. Copy it (right-click → Copy, or select the text and `Ctrl+C`).
-
+ls
 ## Using the token
 
 The token is time-limited, so use it right away — either:

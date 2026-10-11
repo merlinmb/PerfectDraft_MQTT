@@ -98,7 +98,17 @@ class PerfectDraftAPI:
         GETTING_RECAPTCHA_TOKEN.md). After this, refresh_tokens() can renew
         the AccessToken/IdToken via Cognito without needing reCAPTCHA again."""
         url = f"{self.BASE_URL}/authentication/sign-in"
-        headers = {"x-api-key": API_KEY, "Content-Type": "application/json"}
+        headers = {
+            "x-api-key": API_KEY,
+            "Content-Type": "application/json",
+            "Origin": "https://www.perfectdraft.com",
+            "Referer": "https://www.perfectdraft.com/",
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+            ),
+        }
+        recaptcha_token = "".join(recaptcha_token.split()).strip("\"'[]")
         payload = {
             "email": self.email,
             "password": self.password,
