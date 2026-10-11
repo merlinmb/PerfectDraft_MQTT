@@ -14,22 +14,36 @@ PerfectDraft's website uses Google reCAPTCHA Enterprise, which can't be solved h
 
 4. A long token string will be printed to the console a moment later. Copy it (right-click → Copy, or select the text and `Ctrl+C`).
 ls
+> **Tips**
+> - You do **not** need to log in on that page; just open it and let it finish loading.
+> - The value you need is the long string the command prints (about 2,500 characters), **not** the site key `6LcZQi...` that appears inside the command.
+> - Line wraps in the console are only visual. To check the token is clean, run `console.log('[' + tok + ']')` after storing it with `.then(t => { window.tok = t })`; the token is everything between `[` and `]`. The scripts also strip stray whitespace and quotes.
+> - The token expires within about 2 minutes and works once, so use it immediately.
+
 ## Using the token
 
-The token is time-limited, so use it right away — either:
+The token is time-limited, so use it right away. On the machine that runs the bridge (e.g. the Pi), from the project folder (the one containing `docker-compose.yml`):
 
-**Outside Docker (recommended for getting started):**
 ```
-python get_auth_token.py "<paste_token_here>"
-```
-This reads `config.yaml` in the project root, authenticates, and saves the tokens to `data/token_cache.json` (then tells you the `scp` command to push it to the Pi).
-
-**Inside the running container:**
-```
+cd /home/pi/portainer_data/perfectdraft
+docker compose build
 docker compose run --rm perfectdraft-mqtt python main.py --auth-token "<paste_token_here>"
+docker compose up -d
 ```
+
+`build` makes sure the container has the latest code, `run` authenticates and saves the tokens to `token_cache.json` in the data folder, and `up -d` starts (or restarts) the polling loop.
 
 If you see "Authentication failed", the token expired before you used it — just re-run the console command for a fresh one.
+
+If you still see `PreAuthentication failed with error 'domain'`, the container is running old code: copy the updated `src/` to the Pi (`./deploy.sh`) and run `docker compose build` again.
+
+## How sign-in works
+
+Sign-in goes directly to AWS Cognito (`InitiateAuth`, `USER_PASSWORD_AUTH`), passing the reCAPTCHA token, the action `Magento/login` and `domain: https://www.perfectdraft.com` in `ClientMetadata`. PerfectDraft's pre-authentication Lambda rejects sign-in with `'domain'` if that field is missing. The older `api.perfectdraft.com/authentication/sign-in` gateway doesn't forward it, so it can't be used.
+
+## Related project
+
+The Home Assistant integration [brettjenkins/hassio-integration-perfectdraft-pro](https://github.com/brettjenkins/hassio-integration-perfectdraft-pro) uses the same flow and appears to be actively maintained. Check it if PerfectDraft changes their login again.
 
 ## After the first login
 
