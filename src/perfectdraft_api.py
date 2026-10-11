@@ -9,6 +9,8 @@ RESPONSE_LOG_LIMIT = 2000
 API_KEY = "cAyzERqthCJXYVExjNAhr9CzE8ncLN2cQK3WGK10"
 COGNITO_URL = "https://cognito-idp.eu-west-1.amazonaws.com/"
 COGNITO_CLIENT_ID = "57ddq2ppqg2jcpup06r2g1deur"
+RECAPTCHA_ACTION = "Magento/login"
+RECAPTCHA_DOMAIN = "https://www.perfectdraft.com"
 
 
 class AuthError(Exception):
@@ -44,6 +46,7 @@ class PerfectDraftAPI:
         never holds a full credential usable to sign in or impersonate."""
         sensitive_keys = {
             "password",
+            "PASSWORD",
             "recaptchaToken",
             "REFRESH_TOKEN",
             "AccessToken",
@@ -53,7 +56,9 @@ class PerfectDraftAPI:
         if isinstance(value, dict):
             redacted = {}
             for k, v in value.items():
-                if k in sensitive_keys and isinstance(v, str):
+                if k in ("password", "PASSWORD") and isinstance(v, str):
+                    redacted[k] = f"...redacted...({len(v)} chars)"
+                elif k in sensitive_keys and isinstance(v, str):
                     redacted[k] = f"{v[:12]}...redacted...({len(v)} chars)"
                 else:
                     redacted[k] = PerfectDraftAPI._redact_tokens(v)
@@ -97,33 +102,35 @@ class PerfectDraftAPI:
         """One-time sign-in using a manually captured reCAPTCHA token (see
         GETTING_RECAPTCHA_TOKEN.md). After this, refresh_tokens() can renew
         the AccessToken/IdToken via Cognito without needing reCAPTCHA again."""
-        url = f"{self.BASE_URL}/authentication/sign-in"
+        # The api.perfectdraft.com sign-in gateway doesn't forward the
+        # `domain` field the Cognito PreAuthentication Lambda now requires,
+        # so sign in directly against Cognito instead.
         headers = {
-            "x-api-key": API_KEY,
-            "Content-Type": "application/json",
-            "Origin": "https://www.perfectdraft.com",
-            "Referer": "https://www.perfectdraft.com/",
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-            ),
+            "Content-Type": "application/x-amz-json-1.1",
+            "X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth",
         }
         recaptcha_token = "".join(recaptcha_token.split()).strip("\"'[]")
         payload = {
-            "email": self.email,
-            "password": self.password,
-            "recaptchaToken": recaptcha_token,
-            "recaptchaAction": "Magento/login",
+            "AuthFlow": "USER_PASSWORD_AUTH",
+            "ClientId": COGNITO_CLIENT_ID,
+            "AuthParameters": {"USERNAME": self.email, "PASSWORD": self.password},
+            "ClientMetadata": {
+                "recaptchaToken": recaptcha_token,
+                "recaptchaAction": RECAPTCHA_ACTION,
+                "domain": RECAPTCHA_DOMAIN,
+            },
         }
-        response = requests.post(url, json=payload, headers=headers, timeout=15)
-        self._record("POST", url, response)
+        response = requests.post(COGNITO_URL, json=payload, headers=headers, timeout=15)
+        self._record("POST", COGNITO_URL, response)
         self._log_auth_event("authenticate", payload, response)
         if response.status_code != 200:
             raise AuthError(f"Authentication failed: {response.status_code} {response.text}")
-        data = response.json()
-        self.access_token = data.get("AccessToken")
-        self.id_token = data.get("IdToken")
-        self.refresh_token = data.get("RefreshToken")
+        result = response.json().get("AuthenticationResult") or {}
+        if not all(result.get(k) for k in ("AccessToken", "IdToken", "RefreshToken")):
+            raise AuthError(f"Sign-in did not return tokens: {response.text[:RESPONSE_LOG_LIMIT]}")
+        self.access_token = result["AccessToken"]
+        self.id_token = result["IdToken"]
+        self.refresh_token = result["RefreshToken"]
         return self.access_token, self.id_token, self.refresh_token
 
     def refresh_tokens(self):
